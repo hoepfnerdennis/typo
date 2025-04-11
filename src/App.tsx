@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import pbj from "./assets/pbj.gif";
 import pbj2 from "./assets/pbj2.gif";
-import CHARACTERPOOL, {hardcorepool} from "./characterpool";
+import CHARACTERPOOL, { hardcorepool } from "./characterpool";
 import useLocalState from "./useLocalState";
 
 
@@ -11,13 +11,14 @@ type MessageType = {
 };
 
 function App() {
+  const [normal, setnormal] = useState(false);
   const [hardMode, setHardMode] = useState(false);
   const [hardcoreMode, setHardcoreMode] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(hardcoreMode? 750:hardMode ? 1000 : 2000);
+  const [timeLeft, setTimeLeft] = useState(!normal ? 2000 : hardcoreMode ? 750 : hardMode ? 1000 : 2000);
   const [percentageLeft, setPercentageLeft] = useState(100);
   const [gameOver, setGameOver] = useState(true);
   const [checkChar, setCheckChar] = useState(
-    hardcoreMode? hardcorepool[Math.floor(Math.random() * hardcorepool.length)]:CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
+    hardcoreMode ? hardcorepool[Math.floor(Math.random() * hardcorepool.length)] : CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
   );
   const [toast, setToast] = useState<MessageType | undefined>(undefined);
   const [score, setScore] = useLocalState("score", 0);
@@ -27,9 +28,14 @@ function App() {
     hardcore: 0,
   });
 
+  const [highScoreAdventure, setHighScoreAdventure] = useLocalState("highScoreAdventure", {
+    normal: 0,
+    hard: 0,
+    hardcore: 0,
+  });
 
   useEffect(() => {
-    setPercentageLeft(timeLeft / (hardcoreMode? 7:hardMode ? 10 : 20));
+    setPercentageLeft(timeLeft / (!normal ? 20 : hardcoreMode ? 7 : hardMode ? 10 : 20));
   }, [timeLeft, percentageLeft]);
 
   // time-out toast
@@ -38,7 +44,7 @@ function App() {
       setScore(0);
       setToast({ message: "too slow", type: "error" });
       setCheckChar(
-        hardcoreMode? hardcorepool[Math.floor(Math.random() * hardcorepool.length)] : CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
+        hardcoreMode ? hardcorepool[Math.floor(Math.random() * hardcorepool.length)] : CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
       );
       setGameOver(true);
     }
@@ -49,33 +55,51 @@ function App() {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (!event.altKey && !event.ctrlKey && !event.metaKey) {
         const key = event.key;
-
         if (key.length === 1) {
           if (key === checkChar) {
-            setToast({ message: "+1 point", type: "success" });
-            setScore((prev: number) => prev + 1);
-            if (hardMode) {
-              if (score + 1 > highScore.hard) {
-                setHighScore({ ...highScore, hard: highScore.hard + 1 });
+            if (normal) {
+              setToast({ message: "+1 point", type: "success" });
+              setScore((prev: number) => prev + 1);
+              if (hardMode) {
+                if (score + 1 > highScore.hard) {
+                  setHighScore({ ...highScore, hard: highScore.hard + 1 });
+                }
+              } else if (hardcoreMode) {
+                if (score + 1 > highScore.hardcore) {
+                  setHighScore({ ...highScore, hardcore: highScore.hardcore + 1 });
+                }
+              } else {
+                if (score + 1 > highScore.normal) {
+                  setHighScore({ ...highScore, normal: highScore.normal + 1 });
+                }
               }
-            } else if (hardcoreMode) {
-              if (score + 1 > highScore.hardcore) {
-                setHighScore({ ...highScore, hardcore: highScore.hardcore + 1 });
-              }
+              setTimeLeft(!normal ? timeLeft : hardcoreMode ? 750 : hardMode ? 1000 : 2000);
             } else {
-              if (score + 1 > highScore.normal) {
-                setHighScore({ ...highScore, normal: highScore.normal + 1 });
+              setToast({ message: "+1 point", type: "success" });
+              setScore((prev: number) => prev + 1);
+              if (hardMode) {
+                if (score + 1 > highScoreAdventure.hard) {
+                  setHighScoreAdventure({ ...highScoreAdventure, hard: highScoreAdventure.hard + 1 });
+                }
+              } else if (hardcoreMode) {
+                if (score + 1 > highScoreAdventure.hardcore) {
+                  setHighScoreAdventure({ ...highScoreAdventure, hardcore: highScoreAdventure.hardcore + 1 });
+                }
+              } else {
+                if (score + 1 > highScoreAdventure.normal) {
+                  setHighScoreAdventure({ ...highScoreAdventure, normal: highScoreAdventure.normal + 1 });
+                }
               }
+              setTimeLeft(Math.min(timeLeft +( hardcoreMode? 300: hardMode?500 : 600),2000))
             }
+            setCheckChar(
+              hardcoreMode ? hardcorepool[Math.floor(Math.random() * hardcorepool.length)] : CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
+            );
           } else {
             setToast({ message: `${key} was wrong`, type: "error" });
-            setScore(0);
-            setGameOver(true);
+            normal?setScore(0): ""
+            normal?setGameOver(true):setTimeLeft(timeLeft-100) 
           }
-          setCheckChar(
-            hardcoreMode? hardcorepool[Math.floor(Math.random() * hardcorepool.length)] : CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
-          );
-          setTimeLeft(hardcoreMode? 750:hardMode ? 1000 : 2000);
         }
       }
     };
@@ -114,16 +138,33 @@ function App() {
     return () => clearInterval(intervalId);
   }, [setTimeLeft, timeLeft]);
 
-  const handleClick = () => {
+  const handleNormalClick = () => {
     setGameOver(false);
     setCheckChar(
-      hardcorepool? hardcorepool[Math.floor(Math.random() * hardcorepool.length)] :CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
+      hardcorepool ? hardcorepool[Math.floor(Math.random() * hardcorepool.length)] : CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
     );
-    setTimeLeft(hardcoreMode? 500: hardMode ? 1000 : 2000);
+
+    setTimeLeft(hardcoreMode ? 750 : hardMode ? 1000 : 2000);
+
   };
+
+  const handleAdventureClick = () => {
+    setGameOver(false);
+    setCheckChar(
+      CHARACTERPOOL[Math.floor(Math.random() * CHARACTERPOOL.length)]
+    );
+    setTimeLeft(2000);
+
+  };
+
   const handleReset = () => {
     setScore(0);
     setHighScore({
+      normal: 0,
+      hard: 0,
+      hardcore: 0,
+    });
+    setHighScoreAdventure({
       normal: 0,
       hard: 0,
       hardcore: 0,
@@ -135,26 +176,31 @@ function App() {
       <div className="navbar bg-base-100 px-4">
         <div className="navbar-start">
           <div className="flex gap-5 items-center">
-            <button className="btn" onClick={handleReset}>
+            <button className="btn relative left-5" onClick={handleReset}>
               reset highscore
             </button>
-            <h2 className="hidden lg:flex">high score: </h2>
-            <span className="text-sm">normal: {highScore.normal}</span>
-            <span className="text-sm text-warning">hard: {highScore.hard}</span>
-            <span className="text-sm text-error">hardcore: {highScore.hardcore}</span>
+            <div className="grid-cols-4 grid gap-5 items-center top-24 right-32 relative">
+              <h2 className="hidden lg:flex">high score: </h2>
+              <span className="text-sm">normal: {highScore.normal}</span>
+              <span className="text-sm text-warning">hard: {highScore.hard}</span>
+              <span className="text-sm text-error">hardcore: {highScore.hardcore}</span>
+
+              <h3 className="hidden lg:flex">high score Adventure: </h3>
+              <span className="text-sm">normal: {highScoreAdventure.normal}</span>
+              <span className="text-sm text-warning">hard: {highScoreAdventure.hard}</span>
+              <span className="text-sm text-error">hardcore: {highScoreAdventure.hardcore}</span>
+            </div>
           </div>
         </div>
         <div className="navbar-center hidden lg:flex">
           {/* <a className="btn btn-ghost text-xl hidden md:flex">Typo 🍌</a> */}
           <h1
-            className={hardcoreMode?`w-full text-3xl text-center ${
-              hardcoreMode && "text-error"
-            }`:`w-full text-3xl text-center ${
-              hardMode && "text-warning"
+            className={hardcoreMode ? `w-full text-3xl text-center ${hardcoreMode && "text-error"
+              }` : `w-full text-3xl text-center ${hardMode && "text-warning"
             }`}
           >
 
-            {hardcoreMode? "HARDCOREMODE☠️" : hardMode ? "HARDMODE 💀" : "normal mode"}
+            {hardcoreMode ? "HARDCOREMODE☠️" : hardMode ? "HARDMODE 💀" : "normal mode"}
           </h1>
         </div>
         <div className="navbar-end gap-5">
@@ -171,7 +217,7 @@ function App() {
                 type="checkbox"
                 className="toggle toggle-error"
                 checked={hardcoreMode}
-                onChange={() => setHardcoreMode((prev) => !prev)}
+                onChange={() => { setHardcoreMode(prev => (!prev)) }}
               />
               ☠️☠️☠️
             </>
@@ -181,29 +227,35 @@ function App() {
 
       <div className="flex flex-col w-full h-full mt-20 gap-10 items-center justify-start">
         {gameOver ? (
-          <div className="scale-[2.5] h-full flex items-center">
+          <div className="scale-[2.5] mt-40 gap-10 grid items-center">
             <button
-              className={hardcoreMode?`btn ${hardcoreMode && "btn-error"}`:`btn ${hardMode && "btn-warning"}`}
-              onClick={handleClick}
+              className={hardcoreMode ? `btn ${hardcoreMode && "btn-error"}` : `btn ${hardMode && "btn-warning"}`}
+              onClick={() => { setnormal(true); handleNormalClick() }}
               autoFocus
             >
               New Game
+            </button>
+
+            <button
+              className={`btn`}
+              onClick={() => { setnormal(false); handleAdventureClick() }}
+            >
+              Adventure Mode
             </button>
           </div>
         ) : (
           <>
             <progress
-              className={`progress w-2/3 h-5 md:h-10 ${
-                percentageLeft > 60
+              className={`progress w-2/3 h-5 md:h-10 ${percentageLeft > 60
                   ? "progress-success"
                   : percentageLeft > 30
-                  ? "progress-warning"
-                  : "progress-error"
-              }`}
+                    ? "progress-warning"
+                    : "progress-error"
+                }`}
               value={percentageLeft}
               max="100"
             ></progress>
-            <kbd className={`kbd kbd-lg text-neutral-content scale-150 md:scale-[3] my-14 ${hardcoreMode? "bg-error": hardMode?"bg-warning": ""}`}>
+            <kbd className={`kbd kbd-lg text-neutral-content scale-150 md:scale-[3] my-14 ${hardcoreMode ? "bg-error" : hardMode ? "bg-warning" : ""}`}>
               {checkChar}
             </kbd>
             <span>score: {score}</span>
